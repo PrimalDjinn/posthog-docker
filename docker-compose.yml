@@ -139,6 +139,7 @@ services:
             - default
 
     plugins:
+        command: ./bin/plugin-server --no-restart-loop
         extends:
             file: docker-compose.base.yml
             service: plugins
@@ -162,6 +163,9 @@ services:
             PERSONS_DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
             BEHAVIORAL_COHORTS_DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
             OTEL_EXPORTER_OTLP_ENDPOINT: ''
+            COOKIELESS_REDIS_HOST: redis7
+            COOKIELESS_REDIS_PORT: 6379
+            
         depends_on:
             - db
             - redis

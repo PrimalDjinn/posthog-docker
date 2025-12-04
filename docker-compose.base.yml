@@ -309,6 +309,9 @@ services:
             CLICKHOUSE_VERIFY: "false"
             COOKIELESS_REDIS_HOST: redis7
             COOKIELESS_REDIS_PORT: 6379
+            CDP_REDIS_HOST: redis7
+            CDP_REDIS_PORT: 6379
+            
         labels:
             - traefik.enable=true
             # - traefik.http.routers.plugins.rule=PathPrefix(`/public/webhooks`,`/public/m`)
