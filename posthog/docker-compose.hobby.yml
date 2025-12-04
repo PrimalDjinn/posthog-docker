@@ -175,15 +175,6 @@ services:
         extends:
             file: docker-compose.base.yml
             service: proxy
-        ports:
-            - '80:80'
-            - '443:443'
-        volumes:
-            - caddy-data:/data
-            - caddy-config:/config
-        environment:
-            CADDY_TLS_BLOCK: $TLS_BLOCK
-            CADDY_HOST: '$DOMAIN, http://, https://'
         depends_on:
             - web
         networks:
@@ -371,8 +362,6 @@ volumes:
     seaweedfs:
     postgres-data:
     clickhouse-data:
-    caddy-data:
-    caddy-config:
     redis-data:
     redis7-data:
     kafka-data:
