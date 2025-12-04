@@ -16,6 +16,8 @@ services:
         image: ${DOCKER_REGISTRY_PREFIX:-}postgres:15.12-alpine
         volumes:
             - postgres-data:/var/lib/postgresql/data
+        networks:
+            - default
 
     redis:
         extends:
@@ -23,6 +25,8 @@ services:
             service: redis
         volumes:
             - redis-data:/data
+        networks:
+            - default
 
     redis7:
         extends:
@@ -30,6 +34,8 @@ services:
             service: redis7
         volumes:
             - redis7-data:/data
+        networks:
+            - default
 
     clickhouse:
         #
@@ -52,6 +58,8 @@ services:
             - ./posthog/docker/clickhouse/user_defined_function.xml:/etc/clickhouse-server/user_defined_function.xml
             - ./posthog/posthog/user_scripts:/var/lib/clickhouse/user_scripts
             - clickhouse-data:/var/lib/clickhouse
+        networks:
+            - default
 
     zookeeper:
         extends:
@@ -61,6 +69,8 @@ services:
             - zookeeper-datalog:/datalog
             - zookeeper-data:/data
             - zookeeper-logs:/logs
+        networks:
+            - default
     kafka:
         extends:
             file: docker-compose.base.yml
@@ -73,6 +83,8 @@ services:
             KAFKA_LOG_RETENTION_HOURS: 1
         volumes:
             - kafka-data:/bitnami/kafka
+        networks:
+            - default
 
     worker:
         extends:
@@ -90,6 +102,9 @@ services:
             OBJECT_STORAGE_ENABLED: true
             ENCRYPTION_SALT_KEYS: $ENCRYPTION_SALT_KEYS
         image: $REGISTRY_URL:$POSTHOG_APP_TAG
+        networks:
+            - default
+
     web:
         extends:
             file: docker-compose.base.yml
@@ -120,6 +135,8 @@ services:
             - kafka
             - objectstorage
             - seaweedfs
+        networks:
+            - default
 
     plugins:
         extends:
@@ -151,6 +168,8 @@ services:
             - kafka
             - objectstorage
             - seaweedfs
+        networks:
+            - default
 
     proxy:
         extends:
@@ -167,6 +186,9 @@ services:
             CADDY_HOST: '$DOMAIN, http://, https://'
         depends_on:
             - web
+        networks:
+            - default
+
     objectstorage:
         extends:
             file: docker-compose.base.yml
@@ -177,6 +199,8 @@ services:
         ports:
             - '19000:19000'
             - '19001:19001'
+        networks:
+            - default
 
     seaweedfs:
         extends:
@@ -185,6 +209,8 @@ services:
         restart: on-failure
         volumes:
             - seaweedfs:/data
+        networks:
+            - default
 
     asyncmigrationscheck:
         extends:
@@ -195,6 +221,8 @@ services:
             SITE_URL: https://$DOMAIN
             SECRET_KEY: $POSTHOG_SECRET
             SKIP_ASYNC_MIGRATIONS_SETUP: 0
+        networks:
+            - default
 
     # Temporal containers
     temporal:
@@ -207,6 +235,9 @@ services:
             - 7233:7233
         volumes:
             - ./posthog/docker/temporal/dynamicconfig:/etc/temporal/config/dynamicconfig
+        networks:
+            - default
+
     elasticsearch:
         extends:
             file: docker-compose.base.yml
@@ -217,6 +248,9 @@ services:
             service: temporal-admin-tools
         depends_on:
             - temporal
+        networks:
+            - default
+
     temporal-ui:
         extends:
             file: docker-compose.base.yml
@@ -228,6 +262,9 @@ services:
                 condition: service_started
             db:
                 condition: service_healthy
+        networks:
+            - default
+
     temporal-django-worker:
         command: /compose/temporal-django-worker
         extends:
@@ -247,6 +284,8 @@ services:
             - objectstorage
             - seaweedfs
             - temporal
+        networks:
+            - default
 
     cyclotron-janitor:
         extends:
@@ -262,6 +301,8 @@ services:
                 condition: service_healthy
             kafka:
                 condition: service_started
+        networks:
+            - default
 
     capture:
         build:
@@ -269,6 +310,8 @@ services:
         extends:
             file: docker-compose.base.yml
             service: capture
+        networks:
+            - default
 
     replay-capture:
         build:
@@ -276,6 +319,8 @@ services:
         extends:
             file: docker-compose.base.yml
             service: replay-capture
+        networks:
+            - default
 
     property-defs-rs:
         build:
@@ -283,6 +328,8 @@ services:
         extends:
             file: docker-compose.base.yml
             service: property-defs-rs
+        networks:
+            - default
 
     livestream:
         extends:
@@ -294,11 +341,15 @@ services:
             - '8666:8080'
         volumes:
             - ./posthog/docker/livestream/configs-hobby.yml:/configs/configs.yml
+        networks:
+            - default
 
     geoip-updater:
         extends:
             file: docker-compose.base.yml
             service: geoip-init
+        networks:
+            - default
 
     feature-flags:
         build:
@@ -309,6 +360,8 @@ services:
         depends_on:
             - db
             - redis
+        networks:
+            - default
 
 volumes:
     zookeeper-data:
@@ -325,3 +378,7 @@ volumes:
     kafka-data:
     redpanda-data:
     geo-ipdb:
+
+networks:
+    default:
+        driver: bridge
