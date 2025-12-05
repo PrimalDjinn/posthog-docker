@@ -19,7 +19,7 @@ services:
                 :80 {
                     log {
                         output stdout
-                        format consolew
+                        format console
                     }
                 
                     @replay-capture {
