@@ -194,7 +194,7 @@ services:
             file: docker-compose.base.yml
             service: proxy
         depends_on:
-            - hop-web
+            - hog-web
         networks:
             - default
 
