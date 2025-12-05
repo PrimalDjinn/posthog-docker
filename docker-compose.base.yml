@@ -196,6 +196,7 @@ services:
                     Path(`/batch`) || PathPrefix(`/batch/`) ||
                     Path(`/capture`) || PathPrefix(`/capture/`)
                 )
+            - traefik.http.routers.capture.priority=100
             - traefik.http.services.capture.loadbalancer.server.port=3000
 
     replay-capture:
@@ -213,6 +214,7 @@ services:
             CAPTURE_MODE: recordings
         labels:
             - traefik.enable=true
+            - traefik.http.routers.capture.priority=100
             - traefik.http.routers.replay-capture.rule=Path(`/s`) || PathPrefix(`/s/`)
             - traefik.http.services.replay-capture.loadbalancer.server.port=3000
 
@@ -296,6 +298,7 @@ services:
             COOKIELESS_REDIS_PORT: 6379
         labels:
             - traefik.enable=true
+            - traefik.http.routers.capture.priority=100
             - traefik.http.routers.flags.rule=Path(`/flags`) || PathPrefix(`/flags/`)
             - traefik.http.services.flags.loadbalancer.server.port=3001
 
@@ -321,6 +324,7 @@ services:
                     Path(`/public/webhooks`) || PathPrefix(`/public/webhooks/`) ||
                     Path(`/public/m`) || PathPrefix(`/public/m/`)
                 )
+            - traefik.http.routers.capture.priority=100
             - traefik.http.services.plugins.loadbalancer.server.port=6738
 
     livestream:
