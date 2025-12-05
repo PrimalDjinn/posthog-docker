@@ -171,6 +171,7 @@ services:
         labels:
             - traefik.enable=true
             - traefik.http.routers.web.rule=PathPrefix(`/`)
+            - traefik.http.routers.web.priority=1  # Add low priority for catch-all
             - traefik.http.services.web.loadbalancer.server.port=8000
 
     capture:
@@ -189,7 +190,6 @@ services:
             RUST_LOG: "info,rdkafka=warn"
         labels:
             - traefik.enable=true
-            # - traefik.http.routers.capture.rule=PathPrefix(`/e`,`/i/v0`,`/batch`,`/capture`)
             - traefik.http.routers.capture.rule=(
                     Path(`/e`) || PathPrefix(`/e/`) ||
                     Path(`/i/v0`) || PathPrefix(`/i/v0/`) ||
@@ -214,7 +214,7 @@ services:
             CAPTURE_MODE: recordings
         labels:
             - traefik.enable=true
-            - traefik.http.routers.capture.priority=100
+            - traefik.http.routers.replay-capture.priority=100  # Changed from capture to replay-capture
             - traefik.http.routers.replay-capture.rule=Path(`/s`) || PathPrefix(`/s/`)
             - traefik.http.services.replay-capture.loadbalancer.server.port=3000
 
@@ -298,7 +298,7 @@ services:
             COOKIELESS_REDIS_PORT: 6379
         labels:
             - traefik.enable=true
-            - traefik.http.routers.capture.priority=100
+            - traefik.http.routers.flags.priority=100  # Changed from capture to flags
             - traefik.http.routers.flags.rule=Path(`/flags`) || PathPrefix(`/flags/`)
             - traefik.http.services.flags.loadbalancer.server.port=3001
 
@@ -319,12 +319,11 @@ services:
             COOKIELESS_REDIS_PORT: 6379
         labels:
             - traefik.enable=true
-            # - traefik.http.routers.plugins.rule=PathPrefix(`/public/webhooks`,`/public/m`)
             - traefik.http.routers.plugins.rule=(
                     Path(`/public/webhooks`) || PathPrefix(`/public/webhooks/`) ||
                     Path(`/public/m`) || PathPrefix(`/public/m/`)
                 )
-            - traefik.http.routers.capture.priority=100
+            - traefik.http.routers.plugins.priority=100  # Changed from capture to plugins
             - traefik.http.services.plugins.loadbalancer.server.port=6738
 
     livestream:
