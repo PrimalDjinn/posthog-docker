@@ -4,10 +4,8 @@
 
 services:
     proxy:
-        image: caddy:2.7
+        image: caddy
         restart: always
-        ports:
-            - "80:80"
         depends_on:
             - web
             - capture
