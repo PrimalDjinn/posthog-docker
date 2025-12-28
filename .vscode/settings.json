@@ -1,0 +1,7 @@
+{
+    "i18n-ally.localesPaths": [
+        "posthog/rust/cymbal/src/langs",
+        "posthog/frontend/src/lib/monaco/languages",
+        "posthog/frontend/src/scenes/max/messages"
+    ]
+}

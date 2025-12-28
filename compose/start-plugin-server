@@ -1,0 +1,45 @@
+#!/bin/bash
+set -e &&
+echo 'Installing socat...' &&
+apt-get update -qq &&
+apt-get install -y socat &&
+
+echo 'Validating REDIS_URL...' &&
+if [ -z \"$$REDIS_URL\" ]; then
+    echo 'ERROR: REDIS_URL environment variable is not set' &&
+    exit 1;
+fi &&
+
+echo 'Parsing Redis connection details...' &&
+REDIS_CLEAN=$$(echo $$REDIS_URL | sed -e 's|^redis[s]*://||') &&
+REDIS_AUTH=$$(echo $$REDIS_CLEAN | grep -o '^[^@]*@' | sed 's/@//') &&
+REDIS_HOSTPORT=$$(echo $$REDIS_CLEAN | sed -e 's|^[^@]*@||' -e 's|/.*||') &&
+REDIS_HOST=$$(echo $$REDIS_HOSTPORT | sed 's|:.*||') &&
+REDIS_PORT=$$(echo $$REDIS_HOSTPORT | sed 's|.*:||') &&
+REDIS_PORT=$${REDIS_PORT:-6379} &&
+
+if [ -z \"$$REDIS_HOST\" ]; then
+    echo 'ERROR: Could not parse Redis host from REDIS_URL' &&
+    exit 1;
+fi &&
+
+echo \"Starting proxy: localhost:6479 -> $$REDIS_HOST:$$REDIS_PORT\" &&
+socat TCP-LISTEN:6479,fork,reuseaddr TCP:$$REDIS_HOST:$$REDIS_PORT &
+SOCAT_PID=$$! &&
+
+echo 'Waiting for socat to start...' &&
+for i in 1 2 3 4 5; do
+    if kill -0 $$SOCAT_PID 2>/dev/null && nc -z localhost 6479 2>/dev/null; then
+        echo 'Socat proxy is ready' &&
+        break;
+    fi &&
+    if [ $$i -eq 5 ]; then
+        echo 'ERROR: Socat failed to start' &&
+        exit 1;
+    fi &&
+    sleep 1;
+done &&
+
+echo 'Starting plugin-server...' &&
+trap 'echo \"Shutting down...\"; kill $$SOCAT_PID 2>/dev/null' EXIT INT TERM &&
+./bin/plugin-server --no-restart-loop
