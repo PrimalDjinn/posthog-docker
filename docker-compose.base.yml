@@ -363,15 +363,11 @@ services:
             && python manage.py run_async_migrations
             "
         restart: "no"
-        deploy:
-            replicas: 0
 
     asyncmigrationscheck:
         <<: *worker
         command: python manage.py run_async_migrations --check
         restart: "no"
-        deploy:
-            replicas: 0
         environment:
             <<: *worker_env
             SKIP_ASYNC_MIGRATIONS_SETUP: 0

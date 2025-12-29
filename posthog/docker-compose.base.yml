@@ -21,7 +21,7 @@ services:
                         output stdout
                         format console
                     }
-                
+
                     @replay-capture {
                         path /s
                         path /s/
@@ -363,15 +363,11 @@ services:
             && python manage.py run_async_migrations
             "
         restart: "no"
-        deploy:
-            replicas: 0
 
     asyncmigrationscheck:
         <<: *worker
         command: python manage.py run_async_migrations --check
         restart: "no"
-        deploy:
-            replicas: 0
         environment:
             <<: *worker_env
             SKIP_ASYNC_MIGRATIONS_SETUP: 0
@@ -422,7 +418,7 @@ services:
         image: temporalio/admin-tools:1.20.0
         stdin_open: true
         tty: true
-        
+
     temporal-ui:
         depends_on:
             - temporal
