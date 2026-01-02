@@ -121,6 +121,8 @@ export const sessionRecordingDataCoordinatorLogic = kea<sessionRecordingDataCoor
         loadRecordingData: true,
         reportUsageIfFullyLoaded: true,
         setRecordingReportedLoaded: true,
+        processSnapshotsAsync: true,
+        setProcessedSnapshots: (snapshots: RecordingSnapshot[]) => ({ snapshots }),
     }),
     reducers(() => ({
         reportedLoaded: [
@@ -129,14 +131,22 @@ export const sessionRecordingDataCoordinatorLogic = kea<sessionRecordingDataCoor
                 setRecordingReportedLoaded: () => true,
             },
         ],
+        processedSnapshots: [
+            [] as RecordingSnapshot[],
+            {
+                setProcessedSnapshots: (_, { snapshots }) => snapshots,
+            },
+        ],
     })),
-    listeners(({ values, actions }) => ({
+    listeners(({ values, actions, props, cache }) => ({
         loadRecordingData: () => {
             actions.loadRecordingMeta()
         },
 
         loadRecordingMetaSuccess: () => {
-            actions.loadSnapshotSources()
+            if (props.sessionRecordingId) {
+                actions.loadSnapshotSources()
+            }
             actions.reportUsageIfFullyLoaded()
         },
 
@@ -150,6 +160,7 @@ export const sessionRecordingDataCoordinatorLogic = kea<sessionRecordingDataCoor
 
         loadSnapshotsForSourceSuccess: () => {
             actions.reportUsageIfFullyLoaded()
+            actions.processSnapshotsAsync()
         },
 
         loadRecordingCommentsSuccess: () => {
@@ -158,6 +169,25 @@ export const sessionRecordingDataCoordinatorLogic = kea<sessionRecordingDataCoor
 
         loadRecordingNotebookCommentsSuccess: () => {
             actions.reportUsageIfFullyLoaded()
+        },
+
+        setProcessedSnapshots: () => {
+            actions.reportUsageIfFullyLoaded()
+        },
+
+        processSnapshotsAsync: async (_, breakpoint) => {
+            cache.processingCache = cache.processingCache || { snapshots: {} }
+
+            const result = await processAllSnapshots(
+                values.snapshotSources,
+                values.snapshotsBySources,
+                cache.processingCache,
+                values.viewportForTimestamp,
+                props.sessionRecordingId
+            )
+
+            breakpoint()
+            actions.setProcessedSnapshots(result)
         },
 
         reportUsageIfFullyLoaded: (_, breakpoint) => {
@@ -169,21 +199,7 @@ export const sessionRecordingDataCoordinatorLogic = kea<sessionRecordingDataCoor
         },
     })),
     selectors(({ cache }) => ({
-        snapshots: [
-            (s, p) => [s.snapshotSources, s.viewportForTimestamp, p.sessionRecordingId, s.snapshotsBySources],
-            (sources, viewportForTimestamp, sessionRecordingId, snapshotsBySources): RecordingSnapshot[] => {
-                cache.processingCache = cache.processingCache || { snapshots: {} }
-                const snapshots = processAllSnapshots(
-                    sources,
-                    snapshotsBySources,
-                    cache.processingCache,
-                    viewportForTimestamp,
-                    sessionRecordingId
-                )
-
-                return snapshots || []
-            },
-        ],
+        snapshots: [(s) => [s.processedSnapshots], (processedSnapshots): RecordingSnapshot[] => processedSnapshots],
 
         start: [
             (s) => [s.snapshots, s.sessionPlayerMetaData],

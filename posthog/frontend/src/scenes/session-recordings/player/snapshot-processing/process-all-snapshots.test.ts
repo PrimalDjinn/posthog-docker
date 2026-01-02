@@ -233,6 +233,63 @@ describe('process all snapshots', () => {
 
             expect(results).toHaveLength(1)
         })
+
+        it('deduplicates correctly when duplicates are interspersed with unique snapshots', async () => {
+            const sessionId = '1234'
+            const source = {
+                source: 'blob_v2',
+                blob_key: '0',
+            } as SessionRecordingSnapshotSource
+            const key = keyForSource(source)
+            const results = processAllSnapshots(
+                [{ source: 'blob_v2', blob_key: '0' }],
+                {
+                    [key]: {
+                        snapshots: [
+                            // Three snapshots at timestamp 1000: A, A (dup), B (unique)
+                            {
+                                windowId: 1,
+                                timestamp: 1000,
+                                type: 3,
+                                data: { value: 'A' },
+                            } as unknown as RecordingSnapshot,
+                            {
+                                windowId: 1,
+                                timestamp: 1000,
+                                type: 3,
+                                data: { value: 'A' },
+                            } as unknown as RecordingSnapshot, // duplicate of first
+                            {
+                                windowId: 1,
+                                timestamp: 1000,
+                                type: 3,
+                                data: { value: 'B' },
+                            } as unknown as RecordingSnapshot, // unique, should be kept
+                            // Two snapshots at timestamp 2000: C, C (dup)
+                            {
+                                windowId: 1,
+                                timestamp: 2000,
+                                type: 3,
+                                data: { value: 'C' },
+                            } as unknown as RecordingSnapshot,
+                            {
+                                windowId: 1,
+                                timestamp: 2000,
+                                type: 3,
+                                data: { value: 'C' },
+                            } as unknown as RecordingSnapshot, // duplicate
+                        ],
+                    },
+                },
+                { snapshots: {} },
+                () => ({ width: '100', height: '100', href: 'https://example.com' }),
+                sessionId
+            )
+
+            // Should have: A@1000, B@1000, C@2000 (3 unique snapshots)
+            expect(results).toHaveLength(3)
+            expect(results.map((r) => (r.data as any).value)).toEqual(['A', 'B', 'C'])
+        })
     })
 
     describe('hasAnyWireframes', () => {
