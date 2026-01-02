@@ -1,0 +1,77 @@
+#!/bin/bash
+set -e
+
+echo 'Installing socat and netcat...'
+apt-get update -qq
+apt-get install -y socat netcat-openbsd
+
+echo 'Validating REDIS_URL...'
+if [ -z "$REDIS_URL" ]; then
+    echo 'ERROR: REDIS_URL environment variable is not set'
+    exit 1
+fi
+
+echo 'Parsing Redis connection details...'
+REDIS_CLEAN=$(echo "$REDIS_URL" | sed -e 's|^redis[s]\?://||')
+REDIS_AUTH=$(echo "$REDIS_CLEAN" | grep -o '^[^@]*@' | sed 's/@//' || true)
+REDIS_HOSTPORT=$(echo "$REDIS_CLEAN" | sed -e 's|^[^@]*@||' -e 's|/.*||')
+REDIS_HOST=$(echo "$REDIS_HOSTPORT" | sed 's|:.*||')
+REDIS_PORT=$(echo "$REDIS_HOSTPORT" | sed 's|.*:||')
+REDIS_PORT=${REDIS_PORT:-6379}
+
+if [ -z "$REDIS_HOST" ]; then
+    echo 'ERROR: Could not parse Redis host from REDIS_URL'
+    exit 1
+fi
+
+echo "Parsed Redis connection: $REDIS_HOST:$REDIS_PORT"
+
+# Check if port 6479 is already in use
+if nc -z localhost 6479 2>/dev/null; then
+    echo 'WARNING: Port 6479 is already in use, killing existing process...'
+    fuser -k 6479/tcp 2>/dev/null || true
+    sleep 1
+fi
+
+# Test if we can reach the Redis server
+echo "Testing connection to Redis at $REDIS_HOST:$REDIS_PORT..."
+if ! nc -z -w5 "$REDIS_HOST" "$REDIS_PORT" 2>/dev/null; then
+    echo "ERROR: Cannot reach Redis at $REDIS_HOST:$REDIS_PORT"
+    echo "Make sure Redis is running and accessible from this container"
+    exit 1
+fi
+echo "Redis is reachable"
+
+echo "Starting proxy: localhost:6479 -> $REDIS_HOST:$REDIS_PORT"
+socat -d -d TCP-LISTEN:6479,fork,reuseaddr TCP:$REDIS_HOST:$REDIS_PORT &
+SOCAT_PID=$!
+
+echo "Socat started with PID: $SOCAT_PID"
+
+echo 'Waiting for socat to start...'
+for i in 1 2 3 4 5; do
+    sleep 1
+    
+    if ! kill -0 $SOCAT_PID 2>/dev/null; then
+        echo "ERROR: Socat process died (PID: $SOCAT_PID)"
+        wait $SOCAT_PID 2>/dev/null || echo "Socat exited with status: $?"
+        exit 1
+    fi
+    
+    if nc -z localhost 6479 2>/dev/null; then
+        echo 'Socat proxy is ready'
+        break
+    fi
+    
+    if [ $i -eq 5 ]; then
+        echo 'ERROR: Socat failed to start listening on port 6479'
+        kill $SOCAT_PID 2>/dev/null || true
+        exit 1
+    fi
+    
+    echo "Attempt $i/5: Waiting for port 6479..."
+done
+
+echo 'Starting plugin-server...'
+trap 'echo "Shutting down..."; kill $SOCAT_PID 2>/dev/null || true' EXIT INT TERM
+./bin/plugin-server --no-restart-loop
