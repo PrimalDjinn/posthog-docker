@@ -14,12 +14,10 @@ services:
             CADDY_TLS_BLOCK: ''
             CADDY_HOST: 'http://localhost:8000'
             CADDYFILE: |
-                :80 {
-                    log {
-                        output stdout
-                        format console
-                    }
-
+                {
+                ${CADDY_TLS_BLOCK:-}
+                }
+                ${CADDY_HOST:-http://localhost:8000} {
                     @replay-capture {
                         path /s
                         path /s/
@@ -269,16 +267,16 @@ services:
                 BIN: capture
         restart: on-failure
         environment:
-            ADDRESS: "0.0.0.0:3000"
-            KAFKA_TOPIC: "events_plugin_ingestion"
-            KAFKA_HOSTS: "kafka:9092"
-            REDIS_URL: "redis://redis:6379/"
+            ADDRESS: '0.0.0.0:3000'
+            KAFKA_TOPIC: 'events_plugin_ingestion'
+            KAFKA_HOSTS: 'kafka:9092'
+            REDIS_URL: 'redis://redis:6379/'
             CAPTURE_MODE: events
-            RUST_LOG: "info,rdkafka=warn"
+            RUST_LOG: 'info,rdkafka=warn'
             # AI endpoint S3 blob storage (MinIO)
             AI_S3_BUCKET: ai-blobs
-            AI_S3_PREFIX: "llma/"
-            AI_S3_ENDPOINT: "http://objectstorage:19000"
+            AI_S3_PREFIX: 'llma/'
+            AI_S3_ENDPOINT: 'http://objectstorage:19000'
             AI_S3_REGION: us-east-1
             AI_S3_ACCESS_KEY_ID: object_storage_root_user
             AI_S3_SECRET_ACCESS_KEY: object_storage_root_password
@@ -326,11 +324,11 @@ services:
         volumes:
             - ./share:/share
         environment:
-            WRITE_DATABASE_URL: "postgres://posthog:posthog@db:5432/posthog"
-            READ_DATABASE_URL: "postgres://posthog:posthog@db:5432/posthog"
-            PERSONS_WRITE_DATABASE_URL: "postgres://posthog:posthog@db:5432/posthog"
-            PERSONS_READ_DATABASE_URL: "postgres://posthog:posthog@db:5432/posthog"
-            MAXMIND_DB_PATH: "/share/GeoLite2-City.mmdb"
+            WRITE_DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
+            READ_DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
+            PERSONS_WRITE_DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
+            PERSONS_READ_DATABASE_URL: 'postgres://posthog:posthog@db:5432/posthog'
+            MAXMIND_DB_PATH: '/share/GeoLite2-City.mmdb'
             # Shared Redis for non-critical path (analytics, billing, cookieless)
             REDIS_URL: 'redis://redis:6379/'
             # Optional: Use separate Redis URL for read replicas
@@ -364,7 +362,7 @@ services:
             COOKIELESS_REDIS_PORT: 6379
 
     livestream:
-        image: "ghcr.io/posthog/posthog/livestream:master"
+        image: 'ghcr.io/posthog/posthog/livestream:master'
         restart: on-failure
         depends_on:
             kafka:
@@ -377,12 +375,16 @@ services:
             && python manage.py migrate_clickhouse
             && python manage.py run_async_migrations
             "
-        restart: "no"
+        restart: 'no'
+        deploy:
+            replicas: 0
 
     asyncmigrationscheck:
         <<: *worker
         command: python manage.py run_async_migrations --check
-        restart: "no"
+        restart: 'no'
+        deploy:
+            replicas: 0
         environment:
             <<: *worker_env
             SKIP_ASYNC_MIGRATIONS_SETUP: 0
@@ -467,7 +469,6 @@ services:
                 condition: service_healthy
             kafka:
                 condition: service_started
-                
     otel-collector:
         image: otel/opentelemetry-collector-contrib:0.142.0
         container_name: otel-collector-local
@@ -508,7 +509,7 @@ services:
             - otel_network
 
     localstack:
-        container_name: "${LOCALSTACK_DOCKER_NAME:-localstack-main}"
+        container_name: '${LOCALSTACK_DOCKER_NAME:-localstack-main}'
         image: localstack/localstack:4.12.0
         ports:
             - '127.0.0.1:4566:4566' # LocalStack Gateway
@@ -519,11 +520,11 @@ services:
             - '/var/run/docker.sock:/var/run/docker.sock'
 
     seaweedfs:
-        container_name: "${SEAWEEDFS_DOCKER_NAME:-seaweedfs-main}"
+        container_name: '${SEAWEEDFS_DOCKER_NAME:-seaweedfs-main}'
         image: chrislusf/seaweedfs:4.03
         ports:
-            - "127.0.0.1:8333:8333" # S3 API
-            - "127.0.0.1:9333:9333" # Master server (for admin UI)
+            - '127.0.0.1:8333:8333' # S3 API
+            - '127.0.0.1:9333:9333' # Master server (for admin UI)
         entrypoint:
             - /bin/sh
             - -c
@@ -545,7 +546,7 @@ services:
                 echo "SeaweedFS ready with posthog bucket"
                 wait $$WEED_PID
             - --
-        command: ["server", "-s3", "-s3.port=8333", "-dir=/data"]
+        command: ['server', '-s3', '-s3.port=8333', '-dir=/data']
 
 networks:
     otel_network:
