@@ -1,0 +1,1 @@
+git -c merge.allowUnrelatedHistories=true subtree push --prefix=posthog https://github.com/PrimalDjinn/posthog.git master
