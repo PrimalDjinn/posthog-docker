@@ -404,6 +404,11 @@ const TEAM_PROPERTIES_MAPPING: Record<keyof TeamType, (change: ActivityChange) =
         return { description: descriptions }
     },
 
+    // Logs
+    logs_settings: () => {
+        return { description: [<>updated logs settings</>] }
+    },
+
     // Feature flag confirmation config
     feature_flag_confirmation_enabled: createBooleanToggleHandler('feature flag confirmation'),
     feature_flag_confirmation_message: createSimpleValueHandler('feature flag confirmation message'),
@@ -719,6 +724,12 @@ const TEAM_PROPERTIES_MAPPING: Record<keyof TeamType, (change: ActivityChange) =
     marketing_analytics_config: marketingAnalyticsConfigurationDescriber,
     revenue_analytics_config: revenueAnalyticsConfigurationDescriber,
     core_events_config: coreEventsConfigurationDescriber,
+
+    // Conversations
+    conversations_enabled: createBooleanToggleHandler('conversations'),
+    conversations_settings: () => {
+        return { description: [<>updated conversations settings</>] }
+    },
 
     // should never come from the backend
     created_at: () => null,
